@@ -25,12 +25,7 @@ jobs:
           sudo apt-get update
           # Install chromium-browser and common dependencies needed for headless operation
           # Adjust the list if your specific library (like Playwright/Selenium) has different requirements
-          sudo apt-get install -y chromium-browser \
-            libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
-            libcups2 libdrm2 libdbus-1-3 libatspi2.0-0 \
-            libx11-6 libx11-xcb1 libxcb1 libxcomposite1 \
-            libxdamage1 libxext6 libxfixes3 libxrandr2 \
-            libgbm1 libpango-1.0-0 libcairo2 libasound2
+          sudo apt-get install -y chromium-browser 
           echo "System dependencies installed."
 
       - name: Set up Python
