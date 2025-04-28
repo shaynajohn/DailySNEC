@@ -18,16 +18,6 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
-      # It's often better to install system dependencies before setting up Python
-      - name: Install system dependencies for Chromium
-        run: |
-          echo "Installing system dependencies for Chromium..."
-          sudo apt-get update
-          # Install chromium-browser and common dependencies needed for headless operation
-          # Adjust the list if your specific library (like Playwright/Selenium) has different requirements
-          sudo apt-get install -y chromium-browser 
-          echo "System dependencies installed."
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -44,6 +34,16 @@ jobs:
           else
             echo "requirements.txt not found, skipping pip install."
           fi
+
+      # Add this step to install Playwright browsers and dependencies
+      - name: Install Playwright Browsers and Dependencies
+        run: |
+          echo "Installing Playwright browsers..."
+          # Installs default browsers (Chromium, Firefox, WebKit) and OS dependencies
+          playwright install --with-deps
+          # If you ONLY need Chromium, you can uncomment the line below and comment out the line above
+          # playwright install --with-deps chromium
+          echo "Playwright browsers installed."
 
       # Add a step to run your actual Python script
       # Replace 'main.py' with the actual name of your script if different
