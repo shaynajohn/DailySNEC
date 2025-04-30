@@ -3,7 +3,7 @@ name: Daily Updates
 on:
   # 1) Scheduled run (03:00 UTC every Monday and Thursday)
   schedule:
-    - cron: '0 15 * * 1,4'
+    - cron: '0 15 * * *'
   # 2) Manual trigger from the Actions UI
   workflow_dispatch:
 

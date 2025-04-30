@@ -31,8 +31,13 @@ USAGE_TEXT = (
 )
 
 # Aggregation pipeline to find the highest case number per (year, county)
+# Only consider this year 
 AGG_PIPELINE = [
-    {
+    {   
+        "$match": {
+            "CaseYear": date.today().year
+        },
+
         "$group": {
             "_id": {"CaseYear": "$CaseYear", "County": "$County"},
             "MaxCaseNumber": {"$max": {"$toInt": "$CaseNumber"}}
@@ -187,6 +192,7 @@ async def scrape_case(cases: list[dict], url: str = CASE_URL) -> None:
                     print("Not Available for case:", case)
 
             except TimeoutError:
+
                 print("ERROR scraping case:", case)
 
         # Clean up browser resources
