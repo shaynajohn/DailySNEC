@@ -33,11 +33,12 @@ USAGE_TEXT = (
 # Aggregation pipeline to find the highest case number per (year, county)
 # Only consider this year 
 AGG_PIPELINE = [
-    {   
+    {
         "$match": {
             "CaseYear": date.today().year
-        },
-
+        }
+    },
+    {
         "$group": {
             "_id": {"CaseYear": "$CaseYear", "County": "$County"},
             "MaxCaseNumber": {"$max": {"$toInt": "$CaseNumber"}}
