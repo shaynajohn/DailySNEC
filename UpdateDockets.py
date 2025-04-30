@@ -34,11 +34,6 @@ USAGE_TEXT = (
 # Only consider this year 
 AGG_PIPELINE = [
     {
-        "$match": {
-            "CaseYear": date.today().year
-        }
-    },
-    {
         "$group": {
             "_id": {"CaseYear": "$CaseYear", "County": "$County"},
             "MaxCaseNumber": {"$max": {"$toInt": "$CaseNumber"}}
@@ -118,6 +113,10 @@ def get_new_batch() -> pl.DataFrame:
     # Generate next IDs
     raw_ids = []
     for ckpt in checkpoints:
+
+        if ckpt["_id"]["CaseYear"] != date.today().year:
+            continue
+
         year_suffix = str(ckpt["_id"]["CaseYear"] - 2000)
         county_code = inv_county_map.get(ckpt["_id"]["County"], "00")
         # next sequential case numbers, zero-padded to 7 digits
