@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # your CASE_SEARCH_URL in Settings → Secrets
+      DB_CONN: ${{ secrets.DB_CONN }}
       URL: ${{ secrets.CASE_SEARCH_URL }}
 
     steps:
@@ -50,5 +51,5 @@ jobs:
       - name: Run script
         run: |
           echo "Running Python script..."
-          python test.py $URL
+          python UpdateDocket.py $DB_CONN $URL
           echo "Script finished."
