@@ -1,9 +1,9 @@
 name: Daily Updates
 
 on:
-  # 1) Scheduled run (03:00 UTC every day)
+  # 1) Scheduled run (03:00 UTC every Monday and Thursday)
   schedule:
-    - cron: '0 3 * * *'
+    - cron: '0 15 * * 1,4'
   # 2) Manual trigger from the Actions UI
   workflow_dispatch:
 
@@ -51,5 +51,5 @@ jobs:
       - name: Run script
         run: |
           echo "Running Python script..."
-          python UpdateDocket.py $DB_CONN $URL
+          python UpdateDockets.py $DB_CONN $URL
           echo "Script finished."
