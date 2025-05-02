@@ -11,7 +11,11 @@ from playwright.async_api import async_playwright, TimeoutError
 # ---------------------------
 
 # Expected number of new case IDs to generate per county-year
-BATCH_SIZE = 10
+BATCH_SIZE = {
+        "Douglas" : 30,
+        "Lancaster": 20,
+        "Sarpy": 10
+        }
 
 # Mapping from county code to county name
 COUNTY_MAP = {
@@ -121,7 +125,10 @@ def get_new_batch() -> pl.DataFrame:
         county_code = inv_county_map.get(ckpt["_id"]["County"], "00")
         # next sequential case numbers, zero-padded to 7 digits
         start_num = int(ckpt["MaxCaseNumber"]) + 1
-        for offset in range(BATCH_SIZE):
+
+        batch_size = BATCH_SIZE[ckpt["_id"]["County"]]
+
+        for offset in range(batch_size):
             num_str = str(start_num + offset).zfill(7)
             raw_ids.append(f"D {county_code} JV {year_suffix} {num_str}")
 
@@ -133,6 +140,8 @@ def get_new_batch() -> pl.DataFrame:
         pl.lit(None).alias("Docket"),
         pl.lit(None).alias("DateOfBirth")
     ).unnest("parsed")
+
+    print(df)
 
     return df
 
