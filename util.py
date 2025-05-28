@@ -1,6 +1,6 @@
 import polars as pl
 from pymongo import MongoClient
-from time import date
+from datetime import date
 
 # Expected number of new case IDs to generate per county-year
 BATCH_SIZE = {
@@ -26,7 +26,6 @@ AGG_PIPELINE = [
         }
     }
 ]
-
 
 # ---------------------------
 # Helper Functions

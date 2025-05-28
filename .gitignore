@@ -6,6 +6,9 @@ __pycache__/
 # Cases Folder
 Cases/
 
+# DS Store
+.DS_Store
+
 # C extensions
 *.so
 
