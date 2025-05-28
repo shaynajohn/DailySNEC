@@ -107,3 +107,24 @@ def get_next_n_cases(MONGO_URI) -> pl.DataFrame:
     print(df)
 
     return df
+
+def get_bounced_cases(MONGO_URI) -> pl.DataFrame:
+    client = MongoClient(MONGO_URI)
+    db = client["JVCases"]
+    collection = db["Cases"]
+
+    cursor = collection.find()  
+    data   = list(cursor) 
+
+    not_scraped = [parse_case_info(d["CaseID"]) for d in data if "Case Summary" not in d["Docket"]]
+
+    df = pl.DataFrame({"parsed": not_scraped})
+    df = df.with_columns(
+            pl.lit(date.today()).cast(pl.Datetime).alias("TimeScraped"),
+            pl.lit(None).alias("Docket"),
+            pl.lit(None).alias("DateOfBirth")
+        ).unnest("parsed")
+    
+    print(df)
+
+    return df
