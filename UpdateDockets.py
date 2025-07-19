@@ -3,6 +3,8 @@ import asyncio
 from pymongo import MongoClient
 from playwright.async_api import async_playwright, TimeoutError
 from util import get_next_n_cases
+import re
+from bs4 import BeautifulSoup
 
 # ---------------------------
 # Configuration & Constants
@@ -37,15 +39,38 @@ MONGO_URI = sys.argv[1]
 CASE_URL = sys.argv[2]
 
 
+def extract_year_of_birth(html: str) -> str:
+    """
+    Extract the Year of Birth from the case summary HTML.
+    Returns None if not found.
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Look for text containing "Date of Birth" or similar
+    dob_pattern = re.compile(r'Date of Birth|DOB|Birth Date', re.IGNORECASE)
+    
+    # Find all text elements that might contain DOB
+    for element in soup.find_all(text=dob_pattern):
+        # Get the parent element or nearby elements that might contain the actual date
+        parent = element.parent
+        if parent:
+            # Look for a year pattern (4 digits) in nearby text
+            year_match = re.search(r'\b(19|20)\d{2}\b', parent.text)
+            if year_match:
+                return year_match.group(0)
+    
+    return None
+
+
 async def scrape_case(cases: list[dict], url: str = CASE_URL) -> None:
     """
-    Use Playwright to scrape each case’s docket page and store results in MongoDB.
+    Use Playwright to scrape each case's docket page and store results in MongoDB.
 
     For each case dict:
       - Navigate to the search URL
       - Fill form fields: court type, county, case type, year, ID
       - Submit and wait for network idle
-      - If "Case Summary" found in HTML, insert into MongoDB
+      - If "Case Summary" found in HTML, extract Year of Birth and insert into MongoDB
       - Otherwise, log "Not Available"
       - Handle timeouts by logging "ERROR"
     """
@@ -84,15 +109,18 @@ async def scrape_case(cases: list[dict], url: str = CASE_URL) -> None:
 
                 html = await page.content()
                 if "Case Summary" in html:
+                    # Extract Year of Birth from the HTML
+                    year_of_birth = extract_year_of_birth(html)
+                    
                     # Save docket HTML and insert into MongoDB
                     case_record = case.copy()
                     case_record["Docket"] = html
+                    case_record["YearOfBirth"] = year_of_birth
                     collection.insert_one(case_record)
                 else:
                     print("Not Available for case:", case)
 
             except TimeoutError:
-
                 print("ERROR scraping case:", case)
 
         # Clean up browser resources
