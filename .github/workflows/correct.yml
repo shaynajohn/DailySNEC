@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # your CASE_SEARCH_URL in Settings → Secrets
-      DB_CONN: ${{ secrets.DB_CONN }}
+      DB_CONN: ${{ secrets.MONGODB_CONNECTION_STRING }}
       URL: ${{ secrets.CASE_SEARCH_URL }}
 
     steps:
@@ -19,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install Python dependencies
         run: |

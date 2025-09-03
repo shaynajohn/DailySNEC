@@ -1,3 +1,4 @@
 polars
 pymongo
 playwright
+beautifulsoup4
