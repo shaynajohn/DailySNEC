@@ -97,7 +97,15 @@ def get_next_n_cases(MONGO_URI) -> pl.DataFrame:
 
     # Create DataFrame and parse into columns
     df = pl.DataFrame({"CaseID": raw_ids})
+
+
+    print(df)
+
+    
     df = df.with_columns(
+
+
+
     pl.col("CaseID").map_elements(
         parse_case_info, 
         return_dtype=pl.Struct([
