@@ -1,7 +1,6 @@
 import polars as pl
 from pymongo import MongoClient
 from datetime import date
-import pandas as pd
 
 # Expected number of new case IDs to generate per county-year
 BATCH_SIZE = {
