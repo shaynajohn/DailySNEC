@@ -1,6 +1,7 @@
 import polars as pl
 from pymongo import MongoClient
 from datetime import date
+import pandas as pd
 
 # Expected number of new case IDs to generate per county-year
 BATCH_SIZE = {
@@ -70,7 +71,7 @@ def get_next_n_cases(MONGO_URI) -> pl.DataFrame:
     """
     # Connect to MongoDB and aggregate
     client = MongoClient(MONGO_URI)
-    db = client["JVCases"]
+    db = client["Cluster0"]
     collection = db["Cases"]
     checkpoints = list(collection.aggregate(AGG_PIPELINE))
 
@@ -103,6 +104,7 @@ def get_next_n_cases(MONGO_URI) -> pl.DataFrame:
 
     
     df = df.with_columns(
+<<<<<<< HEAD
 
 
 
@@ -119,26 +121,61 @@ def get_next_n_cases(MONGO_URI) -> pl.DataFrame:
         pl.lit(None).alias("DateOfBirth")
 ).unnest("parsed")
     
+=======
+        pl.col("CaseID").map_elements(parse_case_info,
+            return_dtype=pl.Struct([  
+            pl.Field("CaseYear", pl.Int64),
+            pl.Field("County", pl.Utf8),
+            pl.Field("CaseNumber", pl.Utf8)
+        ])).alias("parsed"),
+        pl.lit(date.today()).cast(pl.Datetime).alias("TimeScraped"),
+        pl.lit(None).alias("Docket"),
+        pl.lit(None).alias("DateOfBirth")
+    ).unnest("parsed")
+>>>>>>> 7136eb5 (Changes to cluster and collection names)
 
     return df
 
-def get_bounced_cases(MONGO_URI) -> pl.DataFrame:
-    client = MongoClient(MONGO_URI)
-    db = client["JVCases"]
+
+
+# util.py
+from pymongo import MongoClient
+import polars as pl
+from datetime import datetime
+
+import polars as pl
+from pymongo import MongoClient
+
+def get_bounced_cases(mongo_uri: str) -> pl.DataFrame:
+    """
+    Fetch bounced cases from MongoDB and return as a Polars DataFrame.
+    """
+    # Connect to MongoDB
+    client = MongoClient(mongo_uri)
+
+    # Use the correct database and collection
+    db = client["Cluster0"]  # <-- correct database
     collection = db["Cases"]
 
-    cursor = collection.find()  
-    data   = list(cursor) 
+    # Fetch all documents
+    docs = list(collection.find({}))
+    print(f"Total documents fetched from MongoDB: {len(docs)}")
 
-    not_scraped = [parse_case_info(d["CaseID"]) for d in data if "Case Summary" not in d["Docket"]]
+    if not docs:
+        print("No documents found in collection.")
+        return pl.DataFrame([])  # return empty DataFrame
 
-    df = pl.DataFrame({"parsed": not_scraped})
-    df = df.with_columns(
-            pl.lit(date.today()).cast(pl.Datetime).alias("TimeScraped"),
-            pl.lit(None).alias("Docket"),
-            pl.lit(None).alias("DateOfBirth")
-        ).unnest("parsed")
-    
-    print(df)
+    # Convert to Polars DataFrame
+    df = pl.DataFrame(docs)
+
+    # Optional: filter for "bounced" cases if you have a specific condition
+    # For example, if bounced cases are those where 'Docket' is empty or null:
+    if "Docket" in df.columns:
+        df = df.filter(df["Docket"].is_null() | (df["Docket"] == ""))
+
+    print(f"Shape of DataFrame after filtering bounced cases: {df.shape}")
+    print("Columns:", df.columns)
+    print("First 10 rows:")
+    print(df.head(10))
 
     return df

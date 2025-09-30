@@ -75,7 +75,7 @@ async def scrape_case(cases: list[dict], url: str = CASE_URL) -> None:
       - Handle timeouts by logging "ERROR"
     """
     client = MongoClient(MONGO_URI)
-    db = client["JVCases"]
+    db = client["Cluster0"]
     collection = db["Cases"]
 
     async with async_playwright() as pw:
@@ -131,5 +131,6 @@ async def scrape_case(cases: list[dict], url: str = CASE_URL) -> None:
 if __name__ == "__main__":
     # Generate new cases to scrape
     df_new = get_next_n_cases(MONGO_URI)
+    print(df_new)
     # Run the async scraping routine
     asyncio.run(scrape_case(df_new.to_dicts()))
