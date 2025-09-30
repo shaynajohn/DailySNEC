@@ -82,6 +82,7 @@ def get_next_n_cases(MONGO_URI) -> pl.DataFrame:
     raw_ids = []
     for ckpt in checkpoints:
 
+        #need to alter to accomodate cases in 2026
         if ckpt["_id"]["CaseYear"] != date.today().year:
             continue
 
@@ -104,9 +105,6 @@ def get_next_n_cases(MONGO_URI) -> pl.DataFrame:
 
     
     df = df.with_columns(
-<<<<<<< HEAD
-
-
 
     pl.col("CaseID").map_elements(
         parse_case_info, 
@@ -119,21 +117,8 @@ def get_next_n_cases(MONGO_URI) -> pl.DataFrame:
         pl.lit(date.today()).cast(pl.Datetime).alias("TimeScraped"),
         pl.lit(None).alias("Docket"),
         pl.lit(None).alias("DateOfBirth")
-).unnest("parsed")
-    
-=======
-        pl.col("CaseID").map_elements(parse_case_info,
-            return_dtype=pl.Struct([  
-            pl.Field("CaseYear", pl.Int64),
-            pl.Field("County", pl.Utf8),
-            pl.Field("CaseNumber", pl.Utf8)
-        ])).alias("parsed"),
-        pl.lit(date.today()).cast(pl.Datetime).alias("TimeScraped"),
-        pl.lit(None).alias("Docket"),
-        pl.lit(None).alias("DateOfBirth")
     ).unnest("parsed")
->>>>>>> 7136eb5 (Changes to cluster and collection names)
-
+    
     return df
 
 
