@@ -62,66 +62,55 @@ def parse_case_info(case_str: str, county_map: dict = COUNTY_MAP) -> dict:
 def get_next_n_cases(MONGO_URI) -> pl.DataFrame:
     """
     Generate the next batch of case IDs to scrape based on stored data.
-
-    1. Query MongoDB for the current max case number per (year, county).
-    2. Build the next BATCH_SIZE IDs for each group.
-    3. Parse each into structured columns using Polars.
-    4. Add metadata columns (TimeScraped, Docket, DateOfBirth).
+    Works for the latest year in the database dynamically.
     """
-    # Connect to MongoDB and aggregate
     client = MongoClient(MONGO_URI)
     db = client["Cluster0"]
     collection = db["Cases"]
     checkpoints = list(collection.aggregate(AGG_PIPELINE))
 
-    # Build reverse map from county name back to code
+    if not checkpoints:
+        print("No existing cases found in DB.")
+        return pl.DataFrame([])
+
+    latest_year = max(ckpt["_id"]["CaseYear"] for ckpt in checkpoints)
+
     inv_county_map = {v: k for k, v in COUNTY_MAP.items()}
 
-    # Generate next IDs
     raw_ids = []
     for ckpt in checkpoints:
-
-        #need to alter to accomodate cases in 2026
-        if ckpt["_id"]["CaseYear"] != date.today().year:
+        if ckpt["_id"]["CaseYear"] != latest_year:
             continue
 
-        year_suffix = str(ckpt["_id"]["CaseYear"] - 2000)
-        county_code = inv_county_map.get(ckpt["_id"]["County"], "00")
-        # next sequential case numbers, zero-padded to 7 digits
-        start_num = int(ckpt["MaxCaseNumber"]) + 1
+        county = ckpt["_id"]["County"]
+        county_code = inv_county_map.get(county, "00") 
+        year_suffix = str(latest_year - 2000)
 
-        batch_size = BATCH_SIZE[ckpt["_id"]["County"]]
+        start_num = int(ckpt["MaxCaseNumber"]) + 1
+        batch_size = BATCH_SIZE.get(county, 10) 
 
         for offset in range(batch_size):
             num_str = str(start_num + offset).zfill(7)
             raw_ids.append(f"D {county_code} JV {year_suffix} {num_str}")
 
-    # Create DataFrame and parse into columns
     df = pl.DataFrame({"CaseID": raw_ids})
 
 
-    print(df)
-
-    
     df = df.with_columns(
-
-    pl.col("CaseID").map_elements(
-    parse_case_info,
-    return_dtype=pl.Struct([
-        pl.Field("CaseYear", pl.Int64),
-        pl.Field("County", pl.Utf8),
-        pl.Field("CaseNumber", pl.Utf8)
-    ])
-    ).alias("parsed"),
+        pl.col("CaseID").map_elements(
+            parse_case_info,
+            return_dtype=pl.Struct([
+                pl.Field("CaseYear", pl.Int64),
+                pl.Field("County", pl.Utf8),
+                pl.Field("CaseNumber", pl.Utf8)
+            ])
+        ).alias("parsed"),
         pl.lit(date.today()).cast(pl.Datetime).alias("TimeScraped"),
         pl.lit(None).alias("Docket"),
         pl.lit(None).alias("DateOfBirth")
     ).unnest("parsed")
-    
+
     return df
-
-
-
 # util.py
 from pymongo import MongoClient
 import polars as pl
