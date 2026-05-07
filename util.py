@@ -1,6 +1,7 @@
 import polars as pl
 from pymongo import MongoClient
 from datetime import date
+from datetime import datetime
 
 # Expected number of new case IDs to generate per county-year
 BATCH_SIZE = {
@@ -97,6 +98,7 @@ def get_next_n_cases(MONGO_URI) -> pl.DataFrame:
 
 
     df = df.with_columns(
+<<<<<<< HEAD
         pl.col("CaseID").map_elements(
             parse_case_info,
             return_dtype=pl.Struct([
@@ -109,6 +111,13 @@ def get_next_n_cases(MONGO_URI) -> pl.DataFrame:
         pl.lit(None).alias("Docket"),
         pl.lit(None).alias("DateOfBirth")
     ).unnest("parsed")
+=======
+    pl.col("CaseID").map_elements(parse_case_info).alias("parsed"),
+    pl.lit(datetime.utcnow()).alias("TimeScraped"),
+    pl.lit(None).alias("Docket"),
+    pl.lit(None).alias("DateOfBirth")
+).unnest("parsed")
+>>>>>>> 0c9154f (time scraped fix)
 
     return df
 # util.py
@@ -138,8 +147,20 @@ def get_bounced_cases(mongo_uri: str) -> pl.DataFrame:
         print("No documents found in collection.")
         return pl.DataFrame([])  # return empty DataFrame
 
+<<<<<<< HEAD
     # Convert to Polars DataFrame
     df = pl.DataFrame(docs)
+=======
+    df = pl.DataFrame({"parsed": not_scraped})
+    df = df.with_columns(
+    pl.col("CaseID").map_elements(parse_case_info).alias("parsed"),
+    pl.lit(datetime.utcnow()).alias("TimeScraped"),
+    pl.lit(None).alias("Docket"),
+    pl.lit(None).alias("DateOfBirth")
+).unnest("parsed")
+    
+    print(df)
+>>>>>>> 0c9154f (time scraped fix)
 
     # Optional: filter for "bounced" cases if you have a specific condition
     # For example, if bounced cases are those where 'Docket' is empty or null:
