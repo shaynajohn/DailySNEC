@@ -17,6 +17,7 @@ on:
 jobs:
   debug:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       URL: ${{ secrets.CASE_SEARCH_URL }}
 
@@ -34,8 +35,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Install Playwright Browsers and Dependencies
-        run: playwright install --with-deps chromium
+      - name: Cache Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+
+      # Skip --with-deps: apt mirrors on GitHub runners can take 20+ minutes.
+      # The hosted Ubuntu image already has the libraries Chromium needs.
+      - name: Install Playwright Chromium
+        run: playwright install chromium
 
       - name: Run one-case debug
         run: |
