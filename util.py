@@ -62,33 +62,33 @@ def parse_case_info(case_str: str, county_map: dict = COUNTY_MAP) -> dict:
 
 def get_next_n_cases(MONGO_URI) -> pl.DataFrame:
     """
-    Generate the next batch of case IDs to scrape based on stored data.
-    Works for the latest year in the database dynamically.
+    Generate the next batch of case IDs for the current calendar year.
+    If a county has no records for this year yet, numbering starts at 0000001.
     """
     client = MongoClient(MONGO_URI)
     db = client["Cluster0"]
     collection = db["Cases"]
     checkpoints = list(collection.aggregate(AGG_PIPELINE))
 
-    if not checkpoints:
-        print("No existing cases found in DB.")
-        return pl.DataFrame([])
-
-    latest_year = max(ckpt["_id"]["CaseYear"] for ckpt in checkpoints)
-
+    target_year = date.today().year
     inv_county_map = {v: k for k, v in COUNTY_MAP.items()}
 
-    raw_ids = []
+    max_by_county = {}
     for ckpt in checkpoints:
-        if ckpt["_id"]["CaseYear"] != latest_year:
+        if ckpt["_id"]["CaseYear"] != target_year:
             continue
-
         county = ckpt["_id"]["County"]
-        county_code = inv_county_map.get(county, "00") 
-        year_suffix = str(latest_year - 2000)
+        max_by_county[county] = int(ckpt["MaxCaseNumber"])
 
-        start_num = int(ckpt["MaxCaseNumber"]) + 1
-        batch_size = BATCH_SIZE.get(county, 10) 
+    raw_ids = []
+    year_suffix = str(target_year - 2000)
+    for county, batch_size in BATCH_SIZE.items():
+        county_code = inv_county_map.get(county, "00")
+        start_num = max_by_county.get(county, 0) + 1
+        print(
+            f"Generating {batch_size} {target_year} {county} cases "
+            f"starting at {str(start_num).zfill(7)}"
+        )
 
         for offset in range(batch_size):
             num_str = str(start_num + offset).zfill(7)
