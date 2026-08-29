@@ -1,7 +1,7 @@
 import sys
 import asyncio
 from pymongo import MongoClient
-from playwright.async_api import async_playwright, TimeoutError
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError, Error as PlaywrightError
 from util import get_next_n_cases
 import re
 from bs4 import BeautifulSoup
@@ -12,6 +12,8 @@ from bs4 import BeautifulSoup
 
 # Global timeout for Playwright actions (milliseconds)
 TIMEOUT_MS = 60_000  # 60 seconds
+GOTO_RETRIES = 3
+GOTO_RETRY_DELAY_S = 5
 
 # MongoDB settings (to be provided via CLI)
 USAGE_TEXT = (
@@ -50,7 +52,7 @@ def extract_year_of_birth(html: str) -> str:
     dob_pattern = re.compile(r'Date of Birth|DOB|Birth Date', re.IGNORECASE)
     
     # Find all text elements that might contain DOB
-    for element in soup.find_all(text=dob_pattern):
+    for element in soup.find_all(string=dob_pattern):
         # Get the parent element or nearby elements that might contain the actual date
         parent = element.parent
         if parent:
@@ -60,6 +62,19 @@ def extract_year_of_birth(html: str) -> str:
                 return year_match.group(0)
     
     return None
+
+
+async def goto_with_retry(page, url: str) -> bool:
+    """Retry page.goto on transient network errors (e.g. ERR_CONNECTION_RESET)."""
+    for attempt in range(1, GOTO_RETRIES + 1):
+        try:
+            await page.goto(url)
+            return True
+        except (PlaywrightTimeoutError, PlaywrightError) as e:
+            print(f"page.goto attempt {attempt}/{GOTO_RETRIES} failed: {e}")
+            if attempt < GOTO_RETRIES:
+                await asyncio.sleep(GOTO_RETRY_DELAY_S)
+    return False
 
 
 async def scrape_case(cases: list[dict], url: str = CASE_URL) -> None:
@@ -90,8 +105,9 @@ async def scrape_case(cases: list[dict], url: str = CASE_URL) -> None:
 
         for case in cases:
             try:
-                # Open the search page
-                await page.goto(url)
+                if not await goto_with_retry(page, url):
+                    print("ERROR scraping case:", case)
+                    continue
 
                 # Fill in form inputs
                 await page.select_option("#court_type", "D")
@@ -120,8 +136,8 @@ async def scrape_case(cases: list[dict], url: str = CASE_URL) -> None:
                 else:
                     print("Not Available for case:", case)
 
-            except TimeoutError:
-                print("ERROR scraping case:", case)
+            except (PlaywrightTimeoutError, PlaywrightError) as e:
+                print("ERROR scraping case:", case, f"({e})")
 
         # Clean up browser resources
         await context.close()
